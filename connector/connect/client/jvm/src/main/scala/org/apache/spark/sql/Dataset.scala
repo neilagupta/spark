@@ -827,6 +827,17 @@ class Dataset[T] private[sql] (
     builder.setJoinType(proto.Join.JoinType.JOIN_TYPE_CROSS)
   }
 
+  /**
+   * Create Salted primary key by applying a salt
+   *
+   * Primary Key of the current RDD is necessary to fuse with the salt
+   */
+   def salt(skewVal : int, primaryKey : String): DataFrame = {
+      val saltOnly = sc.range(skewVal).toDF("salt_vals")
+
+      this.crossJoin(saltOnly).withColumn("salt_"+primaryKey, concat(primaryKey, "_", "salt_vals")).drop("salt_vals")
+   }
+
   private def buildSort(global: Boolean, sortExprs: Seq[Column]): Dataset[T] = {
     sparkSession.newDataset(encoder) { builder =>
       builder.getSortBuilder
